@@ -4,4 +4,9 @@ version = "0.1.0"
 description = "a simple website scanner using botasaurus"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["botasaurus>=4.0.88", "faker>=37.4.0"]
+dependencies = [
+    "botasaurus>=4.0.88",
+    "faker>=37.4.0",
+    "flask>=3.0.0",
+    "requests>=2.31.0",
+]

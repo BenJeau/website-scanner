@@ -4,6 +4,9 @@ import base64
 import json
 import random
 import argparse
+import threading
+import requests
+from flask import Flask, request, jsonify
 
 from botasaurus.browser import browser, Driver, cdp
 from botasaurus.profiles import Profiles
@@ -13,6 +16,7 @@ from faker import Faker
 IS_PROD = os.environ.get("ENV") == "PROD"
 
 profiles = []
+app = Flask(__name__)
 
 
 def create_profiles():
@@ -30,11 +34,6 @@ def create_profiles():
         username = fake.user_name()
         Profiles.set_profile(username, profile)
         profiles.append(username)
-
-
-def write_output(_data, result):
-    with open("output.json", "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=4)
 
 
 def get_screenshot(driver: Driver) -> str:
@@ -82,7 +81,7 @@ def navigate_to_url(driver: Driver, url: str) -> str | None:
     close_on_crash=IS_PROD,
     raise_exception=IS_PROD,
     create_error_logs=not IS_PROD,
-    output=write_output,
+    output=None,
     remove_default_browser_check_argument=True,
 )
 def scan_websites(driver: Driver, url: str):
@@ -121,10 +120,84 @@ def scan_websites(driver: Driver, url: str):
     }
 
 
+def scan_website_and_send_to_webhook(url: str, webhook_url: str):
+    try:
+        result = scan_websites(url)
+    except Exception as e:
+        result = {"error": str(e), "original_url": url, "success": False}
+    response = requests.post(webhook_url, json=result, timeout=5)
+    response.raise_for_status()
+
+
+@app.route("/api/v1/scan", methods=["GET"])
+def scan_endpoint():
+    """API endpoint to scan a URL"""
+    url = request.args.get("url")
+
+    if not url:
+        return jsonify({"error": "url parameter is required"}), 400
+
+    webhook_url = app.config.get("WEBHOOK_URL")
+
+    thread = threading.Thread(
+        target=scan_website_and_send_to_webhook, args=(url, webhook_url)
+    )
+    thread.daemon = True
+    thread.start()
+
+    return (
+        jsonify(
+            {
+                "message": "Scan started",
+                "url": url,
+                "webhook": webhook_url,
+            }
+        ),
+        202,
+    )
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({"status": "healthy"}), 200
+
+
 if __name__ == "__main__":
     create_profiles()
 
     parser = argparse.ArgumentParser(description="Scrape websites using botasaurus.")
-    parser.add_argument("urls", nargs="+", help="One or more URLs to scrape.")
+    parser.add_argument(
+        "urls", nargs="*", help="One or more URLs to scrape (for CLI mode)."
+    )
+    parser.add_argument(
+        "--server", action="store_true", help="Run as a server instead of CLI mode"
+    )
+    parser.add_argument(
+        "--webhook",
+        type=str,
+        help="Webhook URL to call with scan results (for CLI mode)",
+    )
+    parser.add_argument(
+        "--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--port", type=int, default=8080, help="Server port (default: 8080)"
+    )
+
     args = parser.parse_args()
-    scan_websites(args.urls)
+
+    if args.server:
+        if not args.webhook:
+            parser.error("webhook is required when running in server mode")
+
+        print(f"Starting server on {args.host}:{args.port}")
+        print(f"Scan endpoint: http://{args.host}:{args.port}/api/v1/scan?url=<URL>")
+        app.config["WEBHOOK_URL"] = args.webhook
+        app.run(host=args.host, port=args.port, debug=not IS_PROD)
+    else:
+        print("Running in CLI mode")
+        results = scan_websites(args.urls)
+
+        with open("output.json", "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4)
