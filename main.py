@@ -3,6 +3,7 @@ import os
 import base64
 import json
 import random
+import argparse
 
 from botasaurus.browser import browser, Driver, cdp
 from botasaurus.profiles import Profiles
@@ -84,7 +85,7 @@ def navigate_to_url(driver: Driver, url: str) -> str | None:
     output=write_output,
     remove_default_browser_check_argument=True,
 )
-def scrape_websites(driver: Driver, url: str):
+def scan_websites(driver: Driver, url: str):
     human_mode = False
     if random.random() < 0.5:
         human_mode = True
@@ -122,4 +123,8 @@ def scrape_websites(driver: Driver, url: str):
 
 if __name__ == "__main__":
     create_profiles()
-    scrape_websites(["https://jeaurond.dev"])
+
+    parser = argparse.ArgumentParser(description="Scrape websites using botasaurus.")
+    parser.add_argument("urls", nargs="+", help="One or more URLs to scrape.")
+    args = parser.parse_args()
+    scan_websites(args.urls)
