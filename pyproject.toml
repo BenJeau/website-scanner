@@ -3,5 +3,8 @@ name = "website-scanner"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = []
+requires-python = ">=3.13"
+dependencies = [
+    "botasaurus>=4.0.88",
+    "faker>=37.4.0",
+]
