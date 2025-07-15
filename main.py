@@ -1,6 +1,4 @@
-import tempfile
 import os
-import base64
 import json
 import random
 import argparse
@@ -37,11 +35,11 @@ def create_profiles():
 
 
 def get_screenshot(driver: Driver) -> str:
-    tmp_path = tempfile.mkdtemp()
-    screenshot_path = os.path.join(tmp_path, "screenshot.png")
-    driver.save_screenshot(screenshot_path)
-    screenshot = base64.b64encode(open(screenshot_path, "rb").read()).decode("utf-8")
-    return screenshot
+    return driver.run_cdp_command(
+        cdp.page.capture_screenshot(
+            format_="png", capture_beyond_viewport=True, optimize_for_speed=True
+        )
+    )
 
 
 def navigate_to_url(driver: Driver, url: str) -> str | None:
@@ -101,7 +99,6 @@ def scan_websites(driver: Driver, url: str):
 
     driver.after_response_received(after_response_handler)
     referer = navigate_to_url(driver, url)
-    driver.short_random_sleep()
 
     return {
         "original_url": url,
