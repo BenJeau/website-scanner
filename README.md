@@ -30,13 +30,13 @@ a small python script using [botasaurus](https://github.com/omkarcloud/botasauru
 install [uv](https://docs.astral.sh/uv/) and run the script with the urls you want to scrape as arguments.
 
 ```bash
-uv run main.py https://jeaurond.dev https://google.com
+uv run src/cli.py https://jeaurond.dev https://google.com
 ```
 
 to use caching, retries, parallelization, etc. set the `ENV` environment variable to `PROD`, e.g.
 
 ```bash
-ENV=PROD uv run main.py https://jeaurond.dev https://google.com
+ENV=PROD uv run src/cli.py https://jeaurond.dev https://google.com
 ```
 
 ## how to run as a server
@@ -44,7 +44,7 @@ ENV=PROD uv run main.py https://jeaurond.dev https://google.com
 assuming you have a server already accepting post requests (or if you do not have one, feel free to try it by running `uv run examples/webhook_server.py`), you can run the script as a server by passing the `--server` flag and the webhook url as an argument.
 
 ```bash
-uv run main.py --server --webhook http://localhost:4567/webhook
+WEBHOOK_URL=http://localhost:4567/webhook uv run fastapi dev src/api.py
 ```
 
 this will start a server on `http://localhost:8080/` and will accept get requests to `http://localhost:8080/api/v1/scan?url=<URL>`.

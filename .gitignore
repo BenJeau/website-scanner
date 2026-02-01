@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
-# botasaurus
 profiles/
 profiles.json
+output.json
+scans/
+extensions/
+output/
